@@ -31,9 +31,49 @@ function renderGames() {
     const gameDiv = document.createElement('div');
     gameDiv.className = 'game';
 
-    const title = document.createElement('h2');
-    title.textContent = game.name;
-    gameDiv.appendChild(title);
+    if (!game.name) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Game name';
+      input.addEventListener('blur', () => handleNameInput(index, input));
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') input.blur();
+      });
+      gameDiv.appendChild(input);
+    } else {
+      const title = document.createElement('h2');
+      title.textContent = game.name;
+      gameDiv.appendChild(title);
+    }
+
+    const menuBtn = document.createElement('button');
+    menuBtn.textContent = '⋮';
+    menuBtn.className = 'menu-btn';
+    gameDiv.appendChild(menuBtn);
+
+    const menu = document.createElement('div');
+    menu.className = 'menu hidden';
+
+    ['david', 'audrey'].forEach(player => {
+      const minus = document.createElement('button');
+      minus.textContent = `- ${player.charAt(0).toUpperCase() + player.slice(1)}`;
+      minus.addEventListener('click', () => {
+        updateScore(index, player, -1);
+        menu.classList.add('hidden');
+      });
+      menu.appendChild(minus);
+    });
+
+    const del = document.createElement('button');
+    del.textContent = 'Delete Game';
+    del.addEventListener('click', () => deleteGame(index));
+    menu.appendChild(del);
+
+    menuBtn.addEventListener('click', () => {
+      menu.classList.toggle('hidden');
+    });
+
+    gameDiv.appendChild(menu);
 
     const scores = document.createElement('div');
     scores.className = 'scores';
@@ -52,6 +92,7 @@ function renderGames() {
       const plus = document.createElement('button');
       plus.textContent = '+';
       plus.addEventListener('click', () => incrementScore(index, player));
+
       row.appendChild(plus);
 
       const scoreSpan = document.createElement('span');
@@ -79,7 +120,13 @@ function addGame() {
   const name = prompt('Enter game name');
   if (!name) return;
   games.push({ name, david: 0, audrey: 0 });
+
   saveGames();
+  renderGames();
+}
+
+function addGame() {
+  games.push({ name: '', david: 0, audrey: 0 });
   renderGames();
 }
 
