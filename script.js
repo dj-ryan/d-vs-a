@@ -1,7 +1,26 @@
-let games = JSON.parse(localStorage.getItem('games') || '[]');
+let games = [];
 
-function saveGames() {
-  localStorage.setItem('games', JSON.stringify(games));
+async function loadGames() {
+  try {
+    const res = await fetch('/.netlify/functions/scoreboard');
+    const data = await res.json();
+    games = data.games || [];
+    renderGames();
+  } catch (e) {
+    console.error('Failed to load games', e);
+  }
+}
+
+async function saveGames() {
+  try {
+    await fetch('/.netlify/functions/scoreboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ games })
+    });
+  } catch (e) {
+    console.error('Failed to save games', e);
+  }
 }
 
 function renderGames() {
@@ -70,4 +89,4 @@ function addGame() {
 
 document.getElementById('add-game').addEventListener('click', addGame);
 
-renderGames();
+loadGames();
