@@ -1,7 +1,26 @@
-let games = JSON.parse(localStorage.getItem('games') || '[]');
+let games = [];
 
-function saveGames() {
-  localStorage.setItem('games', JSON.stringify(games));
+async function loadGames() {
+  try {
+    const res = await fetch('/.netlify/functions/scoreboard');
+    const data = await res.json();
+    games = data.games || [];
+    renderGames();
+  } catch (e) {
+    console.error('Failed to load games', e);
+  }
+}
+
+async function saveGames() {
+  try {
+    await fetch('/.netlify/functions/scoreboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ games })
+    });
+  } catch (e) {
+    console.error('Failed to save games', e);
+  }
 }
 
 function renderGames() {
@@ -27,25 +46,20 @@ function renderGames() {
       nameSpan.textContent = player.charAt(0).toUpperCase() + player.slice(1);
       playerDiv.appendChild(nameSpan);
 
-      const scoreDiv = document.createElement('div');
-      scoreDiv.textContent = game[player];
-      scoreDiv.id = `score-${index}-${player}`;
-      playerDiv.appendChild(scoreDiv);
-
-      const controls = document.createElement('div');
-      controls.className = 'controls';
+      const row = document.createElement('div');
+      row.className = 'score-row';
 
       const plus = document.createElement('button');
       plus.textContent = '+';
-      plus.addEventListener('click', () => updateScore(index, player, 1));
-      controls.appendChild(plus);
+      plus.addEventListener('click', () => incrementScore(index, player));
+      row.appendChild(plus);
 
-      const minus = document.createElement('button');
-      minus.textContent = '-';
-      minus.addEventListener('click', () => updateScore(index, player, -1));
-      controls.appendChild(minus);
+      const scoreSpan = document.createElement('span');
+      scoreSpan.textContent = game[player];
+      scoreSpan.id = `score-${index}-${player}`;
+      row.appendChild(scoreSpan);
 
-      playerDiv.appendChild(controls);
+      playerDiv.appendChild(row);
       scores.appendChild(playerDiv);
     });
 
@@ -54,14 +68,15 @@ function renderGames() {
   });
 }
 
-function updateScore(index, player, delta) {
-  games[index][player] = Math.max(0, games[index][player] + delta);
+function incrementScore(index, player) {
+  games[index][player] += 1;
   saveGames();
-  document.getElementById(`score-${index}-${player}`).textContent = games[index][player];
+  const el = document.getElementById(`score-${index}-${player}`);
+  if (el) el.textContent = games[index][player];
 }
 
 function addGame() {
-  const name = prompt('Enter game name:');
+  const name = prompt('Enter game name');
   if (!name) return;
   games.push({ name, david: 0, audrey: 0 });
   saveGames();
@@ -70,4 +85,4 @@ function addGame() {
 
 document.getElementById('add-game').addEventListener('click', addGame);
 
-renderGames();
+loadGames();
