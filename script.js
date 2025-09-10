@@ -46,25 +46,20 @@ function renderGames() {
       nameSpan.textContent = player.charAt(0).toUpperCase() + player.slice(1);
       playerDiv.appendChild(nameSpan);
 
+      const scoreRow = document.createElement('div');
+      scoreRow.className = 'score-row';
+
       const scoreDiv = document.createElement('div');
       scoreDiv.textContent = game[player];
       scoreDiv.id = `score-${index}-${player}`;
-      playerDiv.appendChild(scoreDiv);
-
-      const controls = document.createElement('div');
-      controls.className = 'controls';
+      scoreRow.appendChild(scoreDiv);
 
       const plus = document.createElement('button');
       plus.textContent = '+';
       plus.addEventListener('click', () => updateScore(index, player, 1));
-      controls.appendChild(plus);
+      scoreRow.appendChild(plus);
 
-      const minus = document.createElement('button');
-      minus.textContent = '-';
-      minus.addEventListener('click', () => updateScore(index, player, -1));
-      controls.appendChild(minus);
-
-      playerDiv.appendChild(controls);
+      playerDiv.appendChild(scoreRow);
       scores.appendChild(playerDiv);
     });
 
