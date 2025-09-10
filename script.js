@@ -1,7 +1,26 @@
-let games = JSON.parse(localStorage.getItem('games') || '[]');
+let games = [];
 
-function saveGames() {
-  localStorage.setItem('games', JSON.stringify(games));
+async function loadGames() {
+  try {
+    const res = await fetch('/.netlify/functions/scoreboard');
+    const data = await res.json();
+    games = data.games || [];
+    renderGames();
+  } catch (e) {
+    console.error('Failed to load games', e);
+  }
+}
+
+async function saveGames() {
+  try {
+    await fetch('/.netlify/functions/scoreboard', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ games })
+    });
+  } catch (e) {
+    console.error('Failed to save games', e);
+  }
 }
 
 function renderGames() {
@@ -12,9 +31,49 @@ function renderGames() {
     const gameDiv = document.createElement('div');
     gameDiv.className = 'game';
 
-    const title = document.createElement('h2');
-    title.textContent = game.name;
-    gameDiv.appendChild(title);
+    if (!game.name) {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.placeholder = 'Game name';
+      input.addEventListener('blur', () => handleNameInput(index, input));
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') input.blur();
+      });
+      gameDiv.appendChild(input);
+    } else {
+      const title = document.createElement('h2');
+      title.textContent = game.name;
+      gameDiv.appendChild(title);
+    }
+
+    const menuBtn = document.createElement('button');
+    menuBtn.textContent = '⋮';
+    menuBtn.className = 'menu-btn';
+    gameDiv.appendChild(menuBtn);
+
+    const menu = document.createElement('div');
+    menu.className = 'menu hidden';
+
+    ['david', 'audrey'].forEach(player => {
+      const minus = document.createElement('button');
+      minus.textContent = `- ${player.charAt(0).toUpperCase() + player.slice(1)}`;
+      minus.addEventListener('click', () => {
+        updateScore(index, player, -1);
+        menu.classList.add('hidden');
+      });
+      menu.appendChild(minus);
+    });
+
+    const del = document.createElement('button');
+    del.textContent = 'Delete Game';
+    del.addEventListener('click', () => deleteGame(index));
+    menu.appendChild(del);
+
+    menuBtn.addEventListener('click', () => {
+      menu.classList.toggle('hidden');
+    });
+
+    gameDiv.appendChild(menu);
 
     const scores = document.createElement('div');
     scores.className = 'scores';
@@ -27,25 +86,20 @@ function renderGames() {
       nameSpan.textContent = player.charAt(0).toUpperCase() + player.slice(1);
       playerDiv.appendChild(nameSpan);
 
-      const scoreDiv = document.createElement('div');
-      scoreDiv.textContent = game[player];
-      scoreDiv.id = `score-${index}-${player}`;
-      playerDiv.appendChild(scoreDiv);
-
-      const controls = document.createElement('div');
-      controls.className = 'controls';
+      const row = document.createElement('div');
+      row.className = 'score-row';
 
       const plus = document.createElement('button');
       plus.textContent = '+';
       plus.addEventListener('click', () => updateScore(index, player, 1));
-      controls.appendChild(plus);
+      row.appendChild(plus);
 
-      const minus = document.createElement('button');
-      minus.textContent = '-';
-      minus.addEventListener('click', () => updateScore(index, player, -1));
-      controls.appendChild(minus);
+      const scoreSpan = document.createElement('span');
+      scoreSpan.textContent = game[player];
+      scoreSpan.id = `score-${index}-${player}`;
+      row.appendChild(scoreSpan);
 
-      playerDiv.appendChild(controls);
+      playerDiv.appendChild(row);
       scores.appendChild(playerDiv);
     });
 
@@ -57,17 +111,29 @@ function renderGames() {
 function updateScore(index, player, delta) {
   games[index][player] = Math.max(0, games[index][player] + delta);
   saveGames();
-  document.getElementById(`score-${index}-${player}`).textContent = games[index][player];
+  const el = document.getElementById(`score-${index}-${player}`);
+  if (el) el.textContent = games[index][player];
+}
+
+function handleNameInput(index, input) {
+  const val = input.value.trim();
+  if (!val) return;
+  games[index].name = val;
+  saveGames();
+  renderGames();
+}
+
+function deleteGame(index) {
+  games.splice(index, 1);
+  saveGames();
+  renderGames();
 }
 
 function addGame() {
-  const name = prompt('Enter game name:');
-  if (!name) return;
-  games.push({ name, david: 0, audrey: 0 });
-  saveGames();
+  games.push({ name: '', david: 0, audrey: 0 });
   renderGames();
 }
 
 document.getElementById('add-game').addEventListener('click', addGame);
 
-renderGames();
+loadGames();
